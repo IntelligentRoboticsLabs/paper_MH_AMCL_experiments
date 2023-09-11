@@ -7,7 +7,7 @@ repositories:
     type: git
     url: https://github.com/fmrico/robotnik_sensors.git
     version: humble-devel
-   ThirdParty/summit_xl_common:
+  ThirdParty/summit_xl_common:
     type: git
     url: https://github.com/fmrico/summit_xl_common.git
     version: humble
@@ -15,7 +15,7 @@ repositories:
     type: git
     url: https://github.com/fmrico/summit_xl_sim.git
     version: humble 
-   ThirdParty/mh_amcl:
+  ThirdParty/mh_amcl:
     type: git
     url: https://github.com/navigation-gridmap/mh_amcl.git
     version: main 
