@@ -15,6 +15,7 @@
 
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "mocap_msgs/msg/rigid_bodies.hpp"
+#include "mh_amcl_msgs/msg/info.hpp"
 
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
@@ -25,7 +26,7 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include "rclcpp/rclcpp.hpp"
-
+#include <stdio.h>
 
 using std::placeholders::_1;
 
@@ -48,6 +49,19 @@ public:
         this->last_gt_ = std::move(msg);
         update();
       });
+
+    sub_info_ = create_subscription<mh_amcl_msgs::msg::Info>(
+      "info", 100, [this](mh_amcl_msgs::msg::Info::UniquePtr msg) {
+        this->last_info_ = std::move(msg);
+        update();
+      });
+
+    if ((file = fopen(filename, "a") ) == NULL) { 
+      std::cout << "Error al abrir el fichero" << std::endl;
+    }
+
+    fprintf(file,"error_translation,error_roll,error_pitch,error_yaw,quality,uncertainty,predict_time,correct_time,reseed_time\n");
+    fclose(file);
   }
 
 private:
@@ -56,9 +70,14 @@ private:
 
   rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr sub_pose_;
   rclcpp::Subscription<mocap_msgs::msg::RigidBodies>::SharedPtr sub_gt_;
+  rclcpp::Subscription<mh_amcl_msgs::msg::Info>::SharedPtr sub_info_;
 
   geometry_msgs::msg::PoseWithCovarianceStamped::UniquePtr last_pose_;
   mocap_msgs::msg::RigidBodies::UniquePtr last_gt_;
+  mh_amcl_msgs::msg::Info::UniquePtr last_info_;
+
+  FILE* file;
+  const char* filename = "data.csv";
 
   void update()
   {
@@ -67,12 +86,12 @@ private:
     if (tf_buffer_.canTransform("map", "base_footprint", tf2::TimePointZero, &error)) {
       map2bf_msg = tf_buffer_.lookupTransform("map", "base_footprint", tf2::TimePointZero);
 
-      if (last_gt_ != nullptr && !last_gt_->rigidbodies.empty()) {
-        const auto & gt_x = last_gt_->rigidbodies[0].pose.position.x;
-        const auto & gt_y = last_gt_->rigidbodies[0].pose.position.y;
+      if (last_gt_ != nullptr && !last_gt_->rigidbodies.empty() && last_info_ != nullptr) {
+        // Correction robot initial pose and optitrack axis
+        const auto & gt_x = (-last_gt_->rigidbodies[0].pose.position.y+0.9);
+        const auto & gt_y = (last_gt_->rigidbodies[0].pose.position.x+0.2);
         const auto & robot_x = map2bf_msg.transform.translation.x;
         const auto & robot_y = map2bf_msg.transform.translation.y;
-
 
         double error_translation = sqrt((gt_x - robot_x) * (gt_x - robot_x) + (gt_y - robot_y) * (gt_y - robot_y));
         
@@ -82,11 +101,26 @@ private:
 
         tf2::Quaternion q_diff = q2 * q1.inverse();
 
-        double roll, pitch, yaw;
+        double error_roll, error_pitch, error_yaw;
         tf2::Matrix3x3 m_diff(q_diff);
-        m_diff.getRPY(roll, pitch, yaw);
-        
-        std::cout << error_translation << " " << roll << " " << pitch << " " << yaw << std::endl;
+        m_diff.getRPY(error_roll, error_pitch, error_yaw);
+
+        double quality = last_info_->quality;
+        double uncertainty = last_info_->uncertainty;
+        double predict_time = last_info_->predict_time.nanosec; 
+        double correct_time = last_info_->correct_time.nanosec; 
+        double reseed_time = last_info_->reseed_time.nanosec;
+
+        std::cout << error_translation << " " << error_roll << " " << error_pitch << " " << error_yaw << " ";
+        std::cout << quality << " " << uncertainty << " ";
+        std::cout << predict_time << " " << correct_time << " " << reseed_time << " " << std::endl;
+
+        if ((file = fopen(filename, "a") ) == NULL) { 
+          std::cout << "Error al abrir el fichero" << std::endl;
+        }
+
+        fprintf(file,"%f,%f,%f,%f,%f,%f,%f,%f,%f\n",error_translation,error_roll,error_pitch,error_yaw,quality,uncertainty,predict_time,correct_time,reseed_time);
+        fclose(file);
       }
     }
   }

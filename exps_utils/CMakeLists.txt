@@ -13,6 +13,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(mocap_msgs REQUIRED)
+find_package(mh_amcl_msgs REQUIRED)
 
 set(dependencies
   rclcpp
@@ -21,6 +22,7 @@ set(dependencies
   tf2
   tf2_geometry_msgs
   mocap_msgs
+  mh_amcl_msgs
 )
 
 include_directories(
