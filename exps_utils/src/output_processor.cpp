@@ -29,6 +29,7 @@
 #include <stdio.h>
 
 using std::placeholders::_1;
+double desviation_roll = 1987.0, desviation_pitch = 1987.0, desviation_yaw = 1987.0;
 
 class OutputProcessor : public rclcpp::Node
 {
@@ -105,13 +106,27 @@ private:
         tf2::Matrix3x3 m_diff(q_diff);
         m_diff.getRPY(error_roll, error_pitch, error_yaw);
 
+        if (desviation_pitch > 1000)
+        {
+          desviation_pitch = error_pitch;
+        }
+        if (desviation_roll > 1000)
+        {
+          desviation_roll = error_roll;
+        }
+        if (desviation_yaw > 1000)
+        {
+          desviation_yaw = error_yaw;
+        }
+        
+
         double quality = last_info_->quality;
         double uncertainty = last_info_->uncertainty;
         double predict_time = last_info_->predict_time.nanosec; 
         double correct_time = last_info_->correct_time.nanosec; 
         double reseed_time = last_info_->reseed_time.nanosec;
 
-        std::cout << error_translation << " " << error_roll << " " << error_pitch << " " << error_yaw << " ";
+        std::cout << error_translation << " " << error_roll-desviation_roll << " " << error_pitch-desviation_pitch << " " << error_yaw-desviation_yaw << " ";
         std::cout << quality << " " << uncertainty << " ";
         std::cout << predict_time << " " << correct_time << " " << reseed_time << " " << std::endl;
 
@@ -119,8 +134,13 @@ private:
           std::cout << "Error al abrir el fichero" << std::endl;
         }
 
-        fprintf(file,"%f,%f,%f,%f,%f,%f,%f,%f,%f\n",error_translation,error_roll,error_pitch,error_yaw,quality,uncertainty,predict_time,correct_time,reseed_time);
+        if (abs(error_roll) < 0.2 && abs(error_pitch) < 0.2 && abs(error_yaw) < 0.2) {
+          fprintf(file,"%f,%f,%f,%f,%f,%f,%f,%f,%f\n",error_translation,error_roll-desviation_roll,error_pitch-desviation_pitch,error_yaw-desviation_yaw,quality,uncertainty,predict_time,correct_time,reseed_time);  
+        }
+        
         fclose(file);
+      } else {
+        std::cout << "No gt or info" << std::endl;
       }
     }
   }
