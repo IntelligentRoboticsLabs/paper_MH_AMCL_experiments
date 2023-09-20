@@ -30,6 +30,10 @@
 
 using std::placeholders::_1;
 double desviation_roll = 1987.0, desviation_pitch = 1987.0, desviation_yaw = 1987.0;
+// clock_t time_init = clock();
+double timestamp_in_seconds_init = 1987.0;
+int tiago = 1; // 0: Summit, 1: Tiago
+int mh_amcl = 1; // 0: AMCL, 1: MH-AMCL
 
 class OutputProcessor : public rclcpp::Node
 {
@@ -61,7 +65,12 @@ public:
       std::cout << "Error al abrir el fichero" << std::endl;
     }
 
-    fprintf(file,"error_translation,error_roll,error_pitch,error_yaw,quality,uncertainty,predict_time,correct_time,reseed_time\n");
+    if (mh_amcl == 0) {
+      fprintf(file,"time,error_translation,error_roll,error_pitch,error_yaw\n");
+    } else {
+      fprintf(file,"time,error_translation,error_roll,error_pitch,error_yaw,quality,uncertainty,predict_time,correct_time,reseed_time\n");
+    }
+    
     fclose(file);
   }
 
@@ -87,10 +96,27 @@ private:
     if (tf_buffer_.canTransform("map", "base_footprint", tf2::TimePointZero, &error)) {
       map2bf_msg = tf_buffer_.lookupTransform("map", "base_footprint", tf2::TimePointZero);
 
-      if (last_gt_ != nullptr && !last_gt_->rigidbodies.empty() && last_info_ != nullptr) {
+      if (last_gt_ != nullptr && !last_gt_->rigidbodies.empty()/* && last_info_ != nullptr*/) {
+
+        
+        
+        double timestamp_in_seconds = (rclcpp::Time(last_gt_->header.stamp).seconds()+rclcpp::Time(last_gt_->header.stamp).nanoseconds())/1000000000;
+
+        // Imprimir el resultado
+        // std::cout << "Timestamp en sec: " << timestamp_in_seconds-timestamp_in_seconds_init << std::endl;
+
+        // clock_t time_req = clock() - time_init;
+        
         // Correction robot initial pose and optitrack axis
-        const auto & gt_x = (-last_gt_->rigidbodies[0].pose.position.y+0.9);
-        const auto & gt_y = (last_gt_->rigidbodies[0].pose.position.x+0.2);
+        // const auto & gt_x = last_gt_->rigidbodies[0].pose.position.x; 
+        // const auto & gt_y = last_gt_->rigidbodies[0].pose.position.y;
+        auto gt_x = last_gt_->rigidbodies[0].pose.position.x; // Summit sim
+        auto gt_y = last_gt_->rigidbodies[0].pose.position.y; // Summit sim
+        if (tiago == 1) {
+          gt_x = (-last_gt_->rigidbodies[0].pose.position.y+0.9); // Tiago real
+          gt_y = (last_gt_->rigidbodies[0].pose.position.x+0.2); // Tiago real
+        }
+        
         const auto & robot_x = map2bf_msg.transform.translation.x;
         const auto & robot_y = map2bf_msg.transform.translation.y;
 
@@ -118,26 +144,42 @@ private:
         {
           desviation_yaw = error_yaw;
         }
+        if (timestamp_in_seconds_init == 1987.0)
+        {
+          timestamp_in_seconds_init = (rclcpp::Time(last_gt_->header.stamp).seconds()+rclcpp::Time(last_gt_->header.stamp).nanoseconds())/1000000000;
+        }
+
+        error_roll = std::abs(error_roll-desviation_roll);
+        error_pitch = std::abs(error_pitch-desviation_pitch);
+        error_yaw = std::abs(error_yaw-desviation_yaw);       
+
+        float timer = timestamp_in_seconds-timestamp_in_seconds_init;
+        std::cout << timer << " ";
+        std::cout << "- T:" << error_translation << " - R:" << error_roll << " - P:" << error_pitch << " - Y:" << error_yaw << std::endl;
         
-
-        double quality = last_info_->quality;
-        double uncertainty = last_info_->uncertainty;
-        double predict_time = last_info_->predict_time.nanosec; 
-        double correct_time = last_info_->correct_time.nanosec; 
-        double reseed_time = last_info_->reseed_time.nanosec;
-
-        std::cout << error_translation << " " << error_roll-desviation_roll << " " << error_pitch-desviation_pitch << " " << error_yaw-desviation_yaw << " ";
-        std::cout << quality << " " << uncertainty << " ";
-        std::cout << predict_time << " " << correct_time << " " << reseed_time << " " << std::endl;
-
         if ((file = fopen(filename, "a") ) == NULL) { 
           std::cout << "Error al abrir el fichero" << std::endl;
         }
 
-        if (abs(error_roll) < 0.2 && abs(error_pitch) < 0.2 && abs(error_yaw) < 0.2) {
-          fprintf(file,"%f,%f,%f,%f,%f,%f,%f,%f,%f\n",error_translation,error_roll-desviation_roll,error_pitch-desviation_pitch,error_yaw-desviation_yaw,quality,uncertainty,predict_time,correct_time,reseed_time);  
+        if (last_info_ != nullptr){
+          double quality = last_info_->quality;
+          double uncertainty = last_info_->uncertainty;
+          double predict_time = static_cast<double>(last_info_->predict_time.sec) + static_cast<double>(last_info_->predict_time.nanosec) / 1e9;
+          double correct_time = static_cast<double>(last_info_->correct_time.sec) + static_cast<double>(last_info_->correct_time.nanosec) / 1e9;
+          double reseed_time = static_cast<double>(last_info_->reseed_time.sec) + static_cast<double>(last_info_->reseed_time.nanosec) / 1e9;
+
+          std::cout << quality << " " << uncertainty << " " << std::endl;
+          std::cout << "Time: " << predict_time << " " << correct_time << " " << reseed_time << " " << std::endl;
+
+          if (abs(error_roll) < 0.2 && abs(error_pitch) < 0.2 && abs(error_yaw) < 0.2) {
+            fprintf(file,"%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",timer,error_translation,error_roll,error_pitch,error_yaw,quality,uncertainty,predict_time,correct_time,reseed_time);  
+          }
+        }else{
+          if (abs(error_roll) < 0.2 && abs(error_pitch) < 0.2 && abs(error_yaw) < 0.2) {
+            fprintf(file,"%f,%f,%f,%f,%f\n",timer,error_translation,error_roll,error_pitch,error_yaw);  
+          }
         }
-        
+         
         fclose(file);
       } else {
         std::cout << "No gt or info" << std::endl;
