@@ -19,4 +19,11 @@ repositories:
     type: git
     url: https://github.com/navigation-gridmap/mh_amcl.git
     version: main 
- 
+  ThirdParty/mocap_msgs:
+    type: git
+    url: https://github.com/MOCAP4ROS2-Project/mocap_msgs.git
+    version: master 
+  ThirdParty/extended_map_server:
+    type: git
+    url: https://github.com/navigation-gridmap/extended_map_server.git
+    version: main 
