@@ -1,6 +1,0 @@
-uneven_world_all_0 filter=lfs diff=lfs merge=lfs -text
-uneven_world_laser_0 filter=lfs diff=lfs merge=lfs -text
-uneven_world_all_0/metadata.yaml filter=lfs diff=lfs merge=lfs -text
-uneven_world_all_0/uneven_world_all_0_0.db3 filter=lfs diff=lfs merge=lfs -text
-uneven_world_laser_0/metadata.yaml filter=lfs diff=lfs merge=lfs -text
-uneven_world_laser_0/uneven_world_laser_0_0.db3 filter=lfs diff=lfs merge=lfs -text
