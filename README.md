@@ -18,6 +18,8 @@ unzip rosbags.zip
 ```
 However, due to the considerable size of the files associated with the experiments conducted outdoors with the Summit XL, they have been stored in a shared folder. To access this folder and obtain the relevant files, you can do so at this link: [Summit XL outdoor](https://urjc-my.sharepoint.com/:f:/r/personal/alberto_gomezjacinto_urjc_es/Documents/0.Research/5.%20Summit/1.%20Rosbags?csf=1&web=1&e=DWcQFO)
 
+** To avoid potential file corruption due to the size of the rosbags, it is recommended to download the .yaml and .db3 files from each folder independently.
+
 3. Compile and source
 ```
 cd <workspace>
