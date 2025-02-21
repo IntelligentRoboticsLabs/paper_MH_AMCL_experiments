@@ -63,4 +63,4 @@ Supporting Extensive Livestock Farming with the use of Autonomous Intelligent Ro
 
 Grant TED2021-132356B-I00 funded by MCIN/AEI/10.13039/501100011033 and by the “European Union NextGenerationEU/PRTR"
 
-![SELF_AIR_EU eu_logo](https://raw.githubusercontent.com/shepherd-robot/.github/main/profile/micin-financiadoUEnextgeneration-prtr-aei.png)
+<img src="https://raw.githubusercontent.com/shepherd-robot/.github/main/profile/micin-financiadoUEnextgeneration-prtr-aei.png" alt="SELF_AIR_EU eu_logo" width="300">
